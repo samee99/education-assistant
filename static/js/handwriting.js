@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const breathingStartButton = document.getElementById('breathingStart');
     const convertButton = document.getElementById('convert');
     const colorPicker = document.getElementById('color-picker');
+    const imageUploadForm = document.getElementById('imageUploadForm');
+    const imageAnalysis = document.getElementById('imageAnalysis');
 
     let isDrawing = false;
     let lastX = 0;
@@ -143,6 +145,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         breathe('Inhale');
     }
+
+    // Image upload and analysis
+    imageUploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            imageAnalysis.value = data.analysis;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error analyzing image: ' + error.message);
+        });
+    });
 
     // Set initial mode
     setMode('draw');

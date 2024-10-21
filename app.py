@@ -2,6 +2,9 @@ import os
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+import openai
+from werkzeug.utils import secure_filename
+import tempfile
 
 class Base(DeclarativeBase):
     pass
@@ -21,6 +24,11 @@ db.init_app(app)
 with app.app_context():
     import models
     db.create_all()
+
+# Set up OpenAI API key
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+if not openai.api_key:
+    raise ValueError("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.")
 
 @app.route('/')
 def index():
@@ -58,6 +66,44 @@ def convert_handwriting():
         converted_text = input_data
 
     return jsonify({"converted_text": converted_text})
+
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            file.save(temp_file.name)
+            temp_file_path = temp_file.name
+
+        try:
+            analysis = analyze_image(temp_file_path)
+            os.unlink(temp_file_path)  # Delete the temporary file
+            return jsonify({"analysis": analysis})
+        except Exception as e:
+            os.unlink(temp_file_path)  # Delete the temporary file
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "File type not allowed"}), 400
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def analyze_image(image_path):
+    with open(image_path, "rb") as image_file:
+        response = openai.Image.create_analysis(
+            image=image_file,
+            model="gpt-4-vision-preview",
+            max_tokens=300,
+        )
+    return response.choices[0].text
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
