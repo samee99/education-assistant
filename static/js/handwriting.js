@@ -93,21 +93,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Convert handwriting
     function convertHandwriting() {
-        const imageData = canvas.toDataURL('image/png');
-        fetch('/convert_handwriting', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ image: imageData }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('convertedText').value = data.converted_text;
-        })
-        .catch((error) => {
+        const convertButton = document.getElementById('convert');
+        convertButton.disabled = true;
+        convertButton.textContent = 'Converting...';
+
+        Tesseract.recognize(canvas, 'eng', { 
+            logger: m => console.log(m)
+        }).then(({ data: { text } }) => {
+            document.getElementById('convertedText').value = text;
+        }).catch((error) => {
             console.error('Error:', error);
             alert('Error converting handwriting');
+        }).finally(() => {
+            convertButton.disabled = false;
+            convertButton.textContent = 'Convert to Text';
         });
     }
 });

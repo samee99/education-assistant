@@ -1,0 +1,97 @@
+{% extends "base.html" %} {% block content %}
+<div class="home-container">
+    <div class="pomodoro-timer">
+        <h5>Pomodoro Timer</h5>
+        <div id="timer-display" class="pomodoro-display">25:00</div>
+        <div class="pomodoro-buttons">
+            <button id="start-timer" class="btn btn-primary">Start</button>
+            <button id="pause-timer" class="btn btn-secondary">Pause</button>
+            <button id="reset-timer" class="btn btn-danger">Reset</button>
+        </div>
+        <div class="mt-2">
+            Completed Pomodoros: <span id="pomodoro-count">0</span>
+        </div>
+    </div>
+
+    <!-- Simplified Breathing Exercise Widget -->
+    <div class="breathing-widget">
+        <h6 id="breathing-title">Box Breathing Exercise</h6>
+        <p id="breathing-instructions">Click Start to begin</p>
+        <div id="balloon-container">
+            <div id="balloon"></div>
+        </div>
+        <button id="toggle-breathing-exercise" class="btn btn-primary">
+            Start
+        </button>
+    </div>
+
+    <!-- Scratchpad for Write-to-Text Mode and Draw Only Mode -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Handwriting Recognition Scratch Pad</h5>
+
+            <!-- Textarea for Write-to-Text Mode (Scribble enabled) -->
+            <textarea
+                id="scratch-pad"
+                rows="10"
+                cols="50"
+                class="form-control"
+                placeholder="Start writing here with Apple Pencil..."
+            ></textarea>
+
+            <!-- Canvas for Draw Only Mode (initially hidden) -->
+            <canvas
+                id="draw-canvas"
+                class="form-control"
+                style="
+                    display: none;
+                    border: 1px solid #ccc;
+                    width: 100%;
+                    height: 300px;
+                "
+            ></canvas>
+
+            <div class="mt-2">
+                <button id="clear-scratch-pad" class="btn btn-secondary">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Pencil mode selection -->
+        <div class="pencil-modes">
+            <button id="write-mode" class="btn btn-info">
+                ✍️ Write to Text
+            </button>
+            <button id="draw-mode" class="btn btn-warning">✏️ Draw Only</button>
+        </div>
+    </div>
+
+    <div class="chat-widget minimized">
+        <div class="chat-header">
+            <span>AI Tutor Chat</span>
+            <button id="toggle-chat" class="btn btn-sm btn-light">
+                Maximize
+            </button>
+        </div>
+        <div class="chat-body">
+            <div id="chat-container" class="chat-container"></div>
+            <form id="chat-form" class="mt-2">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="chat-input"
+                        class="form-control"
+                        placeholder="Ask a question..."
+                    />
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/scratchPad.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pomodoro.js') }}"></script>
+<script src="{{ url_for('static', filename='js/boxBreathing.js') }}"></script>
+{% endblock %}
