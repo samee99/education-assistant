@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const convertButton = document.getElementById('convert');
     const colorPicker = document.getElementById('color-picker');
     const doneButton = document.getElementById('doneButton');
-    const loadLastImageButton = document.getElementById('loadLastImage');
     const imageAnalysis = document.getElementById('imageAnalysis');
     const analyzedImageContainer = document.getElementById('analyzedImageContainer');
 
@@ -56,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     convertButton.addEventListener('click', convertHandwriting);
     breathingStartButton.addEventListener('click', startBreathingExercise);
     doneButton.addEventListener('click', captureAndAnalyze);
-    loadLastImageButton.addEventListener('click', loadLastImage);
 
     function setTool(tool) {
         currentTool = tool;
@@ -204,30 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load last image
-    function loadLastImage() {
-        fetch('/load_last_image')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            const img = new Image();
-            img.onload = function() {
-                ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-                ctx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-            }
-            img.src = data.image;
-        })
-        .catch(error => {
-            console.error('Error loading last image:', error);
-            alert('Error loading last image: ' + error.message);
-        });
-    }
-
     // Set initial mode
     setMode('draw');
-
-    // Load last image when the page loads
-    loadLastImage();
 });

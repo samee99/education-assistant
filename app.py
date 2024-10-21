@@ -49,14 +49,6 @@ def load_image(drawing_id):
     drawing = models.Drawing.query.get_or_404(drawing_id)
     return jsonify({"image": drawing.data})
 
-@app.route('/load_last_image', methods=['GET'])
-def load_last_image():
-    last_drawing = models.Drawing.query.order_by(models.Drawing.id.desc()).first()
-    if last_drawing:
-        return jsonify({"image": last_drawing.data, "id": last_drawing.id})
-    else:
-        return jsonify({"error": "No drawings found"}), 404
-
 @app.route('/convert_handwriting', methods=['POST'])
 def convert_handwriting():
     data = request.json
@@ -74,32 +66,36 @@ def convert_handwriting():
     return jsonify({"converted_text": converted_text})
 
 def analyze_image(drawing_id):
-    drawing = models.Drawing.query.get_or_404(drawing_id)
-    base64_image = base64.b64encode(drawing.image_data).decode('utf-8')
+    try:
+        drawing = models.Drawing.query.get_or_404(drawing_id)
+        base64_image = base64.b64encode(drawing.image_data).decode('utf-8')
 
-    response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {          
-                        "type": "text",
-                        "text": "Check the problem, step by step, and show me its been done correctly",
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}",
-                            "detail": "high"
+        response = client.chat.completions.create(
+            model="gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {          
+                            "type": "text",
+                            "text": "Check the problem, step by step, and show me its been done correctly",
                         },
-                    },                                                                                                   
-                ],
-            }
-        ],
-    )
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                "detail": "high"
+                            },
+                        },                                                                                                   
+                    ],
+                }
+            ],
+        )
 
-    return response.choices[0].message.content
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error in analyze_image: {str(e)}")
+        return f"Error analyzing image: {str(e)}"
 
 @app.route('/upload', methods=['POST'])
 def upload_image():
@@ -115,7 +111,8 @@ def upload_image():
         encoded_image = base64.b64encode(drawing.image_data).decode('utf-8')
         return jsonify({"analysis": analysis, "image": encoded_image})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error in upload_image: {str(e)}")
+        return jsonify({"error": f"Error processing image: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
