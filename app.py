@@ -2,9 +2,9 @@ import os
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-import openai
 import tempfile
 import base64
+from openai import OpenAI
 
 class Base(DeclarativeBase):
     pass
@@ -25,10 +25,8 @@ with app.app_context():
     import models
     db.create_all()
 
-# Set up OpenAI API key
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-if not openai.api_key:
-    raise ValueError("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.")
+# Initialize OpenAI client
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/')
 def index():
@@ -92,13 +90,37 @@ def upload_image():
         return jsonify({"error": str(e)}), 500
 
 def analyze_image(image_path):
-    with open(image_path, "rb") as image_file:
-        response = openai.Image.create_analysis(
-            image=image_file,
-            model="gpt-4-vision-preview",
-            max_tokens=300,
-        )
-    return response.choices[0].text
+    # Function to encode the image
+    def encode_image(image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+
+    # Getting the base64 string
+    base64_image = encode_image(image_path)
+
+    response = client.chat.completions.create(
+        model="gpt-4-vision-preview",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {          
+                        "type": "text",
+                        "text": "Check the problem, step by step, and show me its been done correctly",
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "detail": "high"
+                        },
+                    },                                                                                                   
+                ],
+            }
+        ],
+    )
+
+    return response.choices[0].message.content
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
