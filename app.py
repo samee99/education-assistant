@@ -83,8 +83,10 @@ def upload_image():
 
     try:
         analysis = analyze_image(temp_file_path)
+        with open(temp_file_path, "rb") as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
         os.unlink(temp_file_path)  # Delete the temporary file
-        return jsonify({"analysis": analysis})
+        return jsonify({"analysis": analysis, "image": encoded_image})
     except Exception as e:
         os.unlink(temp_file_path)  # Delete the temporary file
         return jsonify({"error": str(e)}), 500

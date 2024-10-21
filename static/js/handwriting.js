@@ -164,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.error);
             }
             imageAnalysis.value = data.analysis;
+            
+            // Display the analyzed image
+            const analyzedImage = document.createElement('img');
+            analyzedImage.src = `data:image/png;base64,${data.image}`;
+            analyzedImage.style.maxWidth = '100%';
+            document.getElementById('analyzedImageContainer').innerHTML = '';
+            document.getElementById('analyzedImageContainer').appendChild(analyzedImage);
         })
         .catch(error => {
             console.error('Error:', error);
