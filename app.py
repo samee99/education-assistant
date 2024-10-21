@@ -1,13 +1,16 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import base64
+import tempfile
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-import base64
 from openai import OpenAI
+from flask_migrate import Migrate
 
 class Base(DeclarativeBase):
     pass
 
+# Initialize the Flask app and SQLAlchemy
 db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 
@@ -19,10 +22,15 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
-with app.app_context():
-    import models
-    db.create_all()
+# Import models after initializing db and migrate
+from models import Drawing, User
+
+# Set the upload folder where images will be saved
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -35,19 +43,43 @@ def index():
 def convert():
     return render_template('convert.html')
 
+# Modify this to save image in the file system
 @app.route('/save_image', methods=['POST'])
 def save_image():
     data = request.json
     image_data = base64.b64decode(data['image'].split(',')[1])
-    drawing = models.Drawing(data=data['image'], image_data=image_data)
+
+    # Create a unique file name and save the image to the file system
+    file_name = f"{tempfile.mktemp(dir=UPLOAD_FOLDER, suffix='.png').split('/')[-1]}"
+    file_path = os.path.join(UPLOAD_FOLDER, file_name)
+
+    # Save the image to the file system
+    with open(file_path, 'wb') as f:
+        f.write(image_data)
+
+    # Save the file path in the database (instead of image binary data)
+    drawing = Drawing(data=data['image'], file_path=file_name)
     db.session.add(drawing)
     db.session.commit()
-    return jsonify({"message": "Drawing saved successfully", "id": drawing.id})
 
+    return jsonify({"message": "Drawing saved successfully", "id": drawing.id, "file_path": file_name})
+
+# Load the image from the file system
 @app.route('/load_image/<int:drawing_id>', methods=['GET'])
 def load_image(drawing_id):
-    drawing = models.Drawing.query.get_or_404(drawing_id)
-    return jsonify({"image": drawing.data})
+    drawing = Drawing.query.get_or_404(drawing_id)
+    file_path = os.path.join(UPLOAD_FOLDER, drawing.file_path)
+
+    # Read the image from the file system and return as base64-encoded string
+    with open(file_path, 'rb') as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+    return jsonify({"image": encoded_image})
+
+# Serve the uploaded file directly from the file system
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/convert_handwriting', methods=['POST'])
 def convert_handwriting():
@@ -60,15 +92,17 @@ def convert_handwriting():
         # For now, we'll use a placeholder
         converted_text = "This is a placeholder for converted text from drawing."
     else:  # mode == 'write'
-        # For text input, we'll just return the input as is
         converted_text = input_data
 
     return jsonify({"converted_text": converted_text})
 
 def analyze_image(drawing_id):
     try:
-        drawing = models.Drawing.query.get_or_404(drawing_id)
-        base64_image = base64.b64encode(drawing.image_data).decode('utf-8')
+        drawing = Drawing.query.get_or_404(drawing_id)
+        file_path = os.path.join(UPLOAD_FOLDER, drawing.file_path)
+
+        with open(file_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
         response = client.chat.completions.create(
             model="gpt-4-vision-preview",
@@ -76,7 +110,7 @@ def analyze_image(drawing_id):
                 {
                     "role": "user",
                     "content": [
-                        {          
+                        {
                             "type": "text",
                             "text": "Check the problem, step by step, and show me its been done correctly",
                         },
@@ -86,7 +120,7 @@ def analyze_image(drawing_id):
                                 "url": f"data:image/jpeg;base64,{base64_image}",
                                 "detail": "high"
                             },
-                        },                                                                                                   
+                        },
                     ],
                 }
             ],
@@ -101,14 +135,19 @@ def analyze_image(drawing_id):
 def upload_image():
     data = request.json
     drawing_id = data.get('drawing_id')
-    
+
     if not drawing_id:
         return jsonify({"error": "No drawing ID provided"}), 400
 
     try:
         analysis = analyze_image(drawing_id)
-        drawing = models.Drawing.query.get_or_404(drawing_id)
-        encoded_image = base64.b64encode(drawing.image_data).decode('utf-8')
+        drawing = Drawing.query.get_or_404(drawing_id)
+
+        # Return the analysis result and the base64-encoded image
+        file_path = os.path.join(UPLOAD_FOLDER, drawing.file_path)
+        with open(file_path, 'rb') as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
         return jsonify({"analysis": analysis, "image": encoded_image})
     except Exception as e:
         print(f"Error in upload_image: {str(e)}")
