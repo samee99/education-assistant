@@ -2,7 +2,6 @@ import os
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-import tempfile
 import base64
 from openai import OpenAI
 
@@ -74,40 +73,9 @@ def convert_handwriting():
 
     return jsonify({"converted_text": converted_text})
 
-@app.route('/upload', methods=['POST'])
-def upload_image():
-    data = request.json
-    image_data = data.get('image')
-    
-    if not image_data:
-        return jsonify({"error": "No image data provided"}), 400
-
-    # Remove the 'data:image/png;base64,' part
-    image_data = image_data.split(',')[1]
-    
-    # Create a temporary file to store the decoded image
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-        temp_file.write(base64.b64decode(image_data))
-        temp_file_path = temp_file.name
-
-    try:
-        analysis = analyze_image(temp_file_path)
-        with open(temp_file_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-        os.unlink(temp_file_path)  # Delete the temporary file
-        return jsonify({"analysis": analysis, "image": encoded_image})
-    except Exception as e:
-        os.unlink(temp_file_path)  # Delete the temporary file
-        return jsonify({"error": str(e)}), 500
-
-def analyze_image(image_path):
-    # Function to encode the image
-    def encode_image(image_path):
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-
-    # Getting the base64 string
-    base64_image = encode_image(image_path)
+def analyze_image(drawing_id):
+    drawing = models.Drawing.query.get_or_404(drawing_id)
+    base64_image = base64.b64encode(drawing.image_data).decode('utf-8')
 
     response = client.chat.completions.create(
         model="gpt-4-vision-preview",
@@ -132,6 +100,22 @@ def analyze_image(image_path):
     )
 
     return response.choices[0].message.content
+
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    data = request.json
+    drawing_id = data.get('drawing_id')
+    
+    if not drawing_id:
+        return jsonify({"error": "No drawing ID provided"}), 400
+
+    try:
+        analysis = analyze_image(drawing_id)
+        drawing = models.Drawing.query.get_or_404(drawing_id)
+        encoded_image = base64.b64encode(drawing.image_data).decode('utf-8')
+        return jsonify({"analysis": analysis, "image": encoded_image})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

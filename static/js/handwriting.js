@@ -154,39 +154,39 @@ document.addEventListener('DOMContentLoaded', () => {
     function captureAndAnalyze() {
         const imageData = drawCanvas.toDataURL('image/png');
 
-        fetch('/upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ image: imageData }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            imageAnalysis.value = data.analysis;
+        saveImageToBackend(imageData)
+            .then(drawingId => {
+                return fetch('/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ drawing_id: drawingId }),
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                imageAnalysis.value = data.analysis;
 
-            // Display the analyzed image
-            const analyzedImage = document.createElement('img');
-            analyzedImage.src = `data:image/png;base64,${data.image}`;
-            analyzedImage.style.maxWidth = '100%';
-            analyzedImageContainer.innerHTML = '';
-            analyzedImageContainer.appendChild(analyzedImage);
-
-            // Save the image to the backend
-            saveImageToBackend(imageData);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error analyzing image: ' + error.message);
-        });
+                // Display the analyzed image
+                const analyzedImage = document.createElement('img');
+                analyzedImage.src = `data:image/png;base64,${data.image}`;
+                analyzedImage.style.maxWidth = '100%';
+                analyzedImageContainer.innerHTML = '';
+                analyzedImageContainer.appendChild(analyzedImage);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error analyzing image: ' + error.message);
+            });
     }
 
     // Save image to backend
     function saveImageToBackend(imageData) {
-        fetch('/save_image', {
+        return fetch('/save_image', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -196,9 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(response => response.json())
         .then(data => {
             console.log('Image saved successfully. ID:', data.id);
+            return data.id;
         })
         .catch(error => {
             console.error('Error saving image:', error);
+            throw error;
         });
     }
 
