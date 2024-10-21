@@ -1,5 +1,5 @@
 /* Custom styles */
-#scratchpad {
+#scratchpad, #handwritingPad {
     width: 100%;
     max-width: 800px;
     background-color: white;
@@ -17,6 +17,14 @@
 #clear,
 #save,
 #load,
-#load-id {
+#load-id,
+#convert {
     height: 38px;
+}
+
+/* Responsive text area */
+#convertedText {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 1rem;
 }

@@ -26,6 +26,10 @@ with app.app_context():
 def index():
     return render_template('index.html')
 
+@app.route('/convert')
+def convert():
+    return render_template('convert.html')
+
 @app.route('/save', methods=['POST'])
 def save_drawing():
     data = request.json
@@ -38,6 +42,15 @@ def save_drawing():
 def load_drawing(drawing_id):
     drawing = models.Drawing.query.get_or_404(drawing_id)
     return jsonify({"image": drawing.data})
+
+@app.route('/convert_handwriting', methods=['POST'])
+def convert_handwriting():
+    # This is a placeholder for the actual handwriting recognition logic
+    # In a real implementation, you would integrate with a handwriting recognition API here
+    data = request.json
+    # Simulate conversion (replace this with actual API call)
+    converted_text = "This is a placeholder for converted text."
+    return jsonify({"converted_text": converted_text})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
