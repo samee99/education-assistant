@@ -36,18 +36,27 @@ def index():
 def convert():
     return render_template('convert.html')
 
-@app.route('/save', methods=['POST'])
-def save_drawing():
+@app.route('/save_image', methods=['POST'])
+def save_image():
     data = request.json
-    drawing = models.Drawing(data=data['image'])
+    image_data = base64.b64decode(data['image'].split(',')[1])
+    drawing = models.Drawing(data=data['image'], image_data=image_data)
     db.session.add(drawing)
     db.session.commit()
     return jsonify({"message": "Drawing saved successfully", "id": drawing.id})
 
-@app.route('/load/<int:drawing_id>', methods=['GET'])
-def load_drawing(drawing_id):
+@app.route('/load_image/<int:drawing_id>', methods=['GET'])
+def load_image(drawing_id):
     drawing = models.Drawing.query.get_or_404(drawing_id)
     return jsonify({"image": drawing.data})
+
+@app.route('/load_last_image', methods=['GET'])
+def load_last_image():
+    last_drawing = models.Drawing.query.order_by(models.Drawing.id.desc()).first()
+    if last_drawing:
+        return jsonify({"image": last_drawing.data, "id": last_drawing.id})
+    else:
+        return jsonify({"error": "No drawings found"}), 404
 
 @app.route('/convert_handwriting', methods=['POST'])
 def convert_handwriting():
