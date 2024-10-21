@@ -31,7 +31,12 @@
         <h1 class="text-center mb-4">Convert Handwriting</h1>
         <div class="row">
             <div class="col-md-8 offset-md-2">
+                <div class="btn-group mb-3" role="group" aria-label="Mode Selection">
+                    <button id="drawMode" class="btn btn-secondary active">Draw Mode</button>
+                    <button id="writeMode" class="btn btn-secondary">Write Mode</button>
+                </div>
                 <canvas id="handwritingPad" class="border rounded"></canvas>
+                <textarea id="scratchPad" class="form-control border rounded" rows="5" style="display: none;"></textarea>
             </div>
         </div>
         <div class="row mt-3">
@@ -43,6 +48,7 @@
                 </div>
                 <button id="clear" class="btn btn-danger ms-2">Clear</button>
                 <button id="convert" class="btn btn-primary ms-2">Convert to Text</button>
+                <button id="breathingStart" class="btn btn-info ms-2">Start Breathing Exercise</button>
             </div>
         </div>
         <div class="row mt-3">

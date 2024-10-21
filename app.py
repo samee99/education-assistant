@@ -45,11 +45,18 @@ def load_drawing(drawing_id):
 
 @app.route('/convert_handwriting', methods=['POST'])
 def convert_handwriting():
-    # This is a placeholder for the actual handwriting recognition logic
-    # In a real implementation, you would integrate with a handwriting recognition API here
     data = request.json
-    # Simulate conversion (replace this with actual API call)
-    converted_text = "This is a placeholder for converted text."
+    mode = data.get('mode', 'draw')
+    input_data = data.get('data', '')
+
+    if mode == 'draw':
+        # Here you would integrate with a handwriting recognition API
+        # For now, we'll use a placeholder
+        converted_text = "This is a placeholder for converted text from drawing."
+    else:  # mode == 'write'
+        # For text input, we'll just return the input as is
+        converted_text = input_data
+
     return jsonify({"converted_text": converted_text})
 
 if __name__ == '__main__':
