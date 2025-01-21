@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apple Pencil Scratch Pad</title>
+    <title>Apple Pencil Scratch Pad - Webcam & Handwriting</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
     <div class="container mt-4">
@@ -17,38 +19,159 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="/">Scratch Pad</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/convert">Convert Handwriting</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="#scratchPadSection">Scratch Pad</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#convertSection">Convert Handwriting</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#webcamSection">Webcam Capture</a></li>
                     </ul>
                 </div>
             </div>
         </nav>
 
-        <h1 class="text-center mb-4">Apple Pencil Scratch Pad</h1>
-        <div class="row">
-            <div class="col-md-8 offset-md-2">
-                <canvas id="scratchpad" class="border rounded"></canvas>
+        <!-- Scratch Pad and Handwriting Conversion Section -->
+        <div id="convertSection" class="mt-4">
+            <h1 class="text-center mb-4">Convert Handwriting</h1>
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="btn-group mb-3" role="group" aria-label="Mode Selection">
+                        <button id="drawMode" class="btn btn-secondary active">Draw Mode</button>
+                        <button id="writeMode" class="btn btn-secondary">Write Mode</button>
+                    </div>
+                    <canvas id="handwritingPad" class="border rounded"></canvas>
+                    <textarea id="scratchPad" class="form-control border rounded" rows="5" style="display: none;"></textarea>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 offset-md-2">
+                    <div class="btn-group" role="group" aria-label="Drawing Tools">
+                        <button id="pen" class="btn btn-secondary active">Pen</button>
+                        <button id="eraser" class="btn btn-secondary">Eraser</button>
+                        <input type="color" id="color-picker" class="form-control-color" value="#000000" title="Choose color">
+                    </div>
+                    <button id="clear" class="btn btn-danger ms-2">Clear</button>
+                    <button id="convert" class="btn btn-primary ms-2">Convert to Text</button>
+                    <button id="doneButton" class="btn btn-success ms-2">Done</button>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 offset-md-2">
+                    <div id="convertedText" class="form-control" rows="4" readonly placeholder="Converted text will appear here"></div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 offset-md-2">
+                    <div id="imageAnalysis" class="form-control" rows="6" readonly placeholder="Image analysis will appear here"></div>
+                </div>
             </div>
         </div>
-        <div class="row mt-3">
-            <div class="col-md-8 offset-md-2">
-                <div class="btn-group" role="group" aria-label="Drawing Tools">
-                    <button id="pen" class="btn btn-secondary active">Pen</button>
-                    <button id="eraser" class="btn btn-secondary">Eraser</button>
-                    <input type="color" id="color-picker" class="form-control-color" value="#000000" title="Choose color">
+
+        <!-- Webcam Capture Section -->
+        <div id="webcamSection" class="mt-5">
+            <h1 class="text-center mb-4">Webcam & Audio Capture</h1>
+            <div class="row">
+                <div class="col-md-8 offset-md-2 text-center">
+                    <video id="webcam" autoplay playsinline class="border rounded mb-2" style="width: 100%;"></video>
+                    <br>
+                    <button id="capture" class="btn btn-primary">Capture Image & Audio</button>
+                    <canvas id="snapshotCanvas" class="d-none"></canvas>
+                    <img id="capturedImage" class="border rounded" style="max-width: 100%;" />
                 </div>
-                <button id="clear" class="btn btn-danger ms-2">Clear</button>
-                <button id="save" class="btn btn-primary ms-2">Save</button>
-                <input type="number" id="load-id" class="form-control d-inline-block ms-2" style="width: 100px;" placeholder="Drawing ID">
-                <button id="load" class="btn btn-info">Load</button>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 offset-md-2 text-center">
+                    <h3>Analyzed Image:</h3>
+                    <div id="analyzedImageContainer"></div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-8 offset-md-2 text-center">
+                    <h3>Analysis Result:</h3>
+                    <div id="analyzedResult" class="form-control" placeholder="Analyzed result will appear here"></div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/scratchpad.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/handwriting.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const webcamElement = document.getElementById('webcam');
+        const captureButton = document.getElementById('capture');
+        const snapshotCanvas = document.getElementById('snapshotCanvas');
+        const capturedImage = document.getElementById('capturedImage');
+        const analyzedResult = document.getElementById('analyzedResult');
+        const analyzedImageContainer = document.getElementById('analyzedImageContainer');
+        const ctx = snapshotCanvas.getContext('2d');
+        let audioChunks = [];
+
+        // Start webcam stream
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    webcamElement.srcObject = stream;
+
+                    // Setup MediaRecorder for audio
+                    const mediaRecorder = new MediaRecorder(stream);
+                    
+                    captureButton.addEventListener('click', () => {
+                        // Start audio recording
+                        mediaRecorder.start();
+                        setTimeout(() => {
+                            mediaRecorder.stop();  // Stop after 5 seconds
+                        }, 5000);
+
+                        // Capture webcam image
+                        snapshotCanvas.width = webcamElement.videoWidth;
+                        snapshotCanvas.height = webcamElement.videoHeight;
+                        ctx.drawImage(webcamElement, 0, 0, webcamElement.videoWidth, webcamElement.videoHeight);
+                        capturedImage.src = snapshotCanvas.toDataURL('image/jpeg');
+                    });
+
+                    // Collect audio data
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    // Process after recording stops
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                        audioChunks = [];
+
+                        // Prepare data for backend
+                        const imageData = snapshotCanvas.toDataURL('image/jpeg');
+                        const formData = new FormData();
+                        formData.append('image', imageData);
+                        formData.append('audio', audioBlob);
+
+                        fetch('/process_webcam_image', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Display result
+                            analyzedResult.innerHTML = data.analysis;
+                            analyzedImageContainer.innerHTML = `<img src="data:image/jpeg;base64,${data.image}" style="max-width: 100%;" />`;
+
+                            // Play audio if available
+                            if (data.speech_url) {
+                                const audio = new Audio(data.speech_url);
+                                audio.play();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error processing capture:', error);
+                            alert('Error processing image and audio.');
+                        });
+                    };
+                })
+                .catch(err => {
+                    console.error('Webcam or audio access denied:', err);
+                    alert('Access to webcam and microphone is required.');
+                });
+        }
+    });
+    </script>
 </body>
 </html>
