@@ -1,6 +1,6 @@
 Scratch Pad
 ## Overview
-The Apple Pencil Scratch Pad is an educational web application that allows users to draw and convert handwriting into text, specifically designed to assist with math problems on the fly. It includes features for webcam image capture and audio analysis, leveraging OpenAI for handwriting recognition and user interactions.
+The Scratch Pad is an educational web application that allows users to draw and convert handwriting into text, specifically designed to assist with math problems on the fly. It includes features for webcam image capture and audio analysis, leveraging OpenAI for handwriting recognition and user interactions.
 ## Features
 - **Handwriting Conversion**: Users can draw on a canvas, and it converts the handwriting into text, including mathematical expressions.
 - **Webcam Capture**: Users can capture images and audio from their webcam.
